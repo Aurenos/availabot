@@ -1,5 +1,6 @@
 import birl
 import birl/duration
+import datetime_utils
 import discord_gleam
 import discord_gleam/discord/intents
 import discord_gleam/event_handler
@@ -76,12 +77,17 @@ fn parse_command(msg_content: String) -> Result(Command, String) {
 }
 
 fn parse_imout(args: String) -> Result(Command, String) {
-  case string.trim(args) {
-    "tomorrow" -> {
+  let arg = args |> string.trim |> string.lowercase
+  case arg, birl.parse_weekday(arg) {
+    "tomorrow", _ -> {
       let tomorrow = birl.now() |> birl.add(duration.days(1))
       Ok(ImOut(tomorrow))
     }
-    _ -> Error("I don't understand")
+    "today", _ -> Ok(ImOut(birl.now()))
+    _, Ok(weekday) -> {
+      Ok(ImOut(datetime_utils.get_next_weekday(weekday)))
+    }
+    _, _ -> Error("I don't understand")
   }
 }
 
