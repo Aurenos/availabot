@@ -59,6 +59,8 @@ fn event_handler(bot: bot.Bot, packet: event_handler.Packet) {
   }
 }
 
+// CMD PARSERS ----------------------------------------------------------------
+
 fn parse_command(msg_content: String) -> Result(Command, String) {
   use <- bool.guard(
     when: !string.starts_with(msg_content, "!"),
@@ -82,6 +84,8 @@ fn parse_imout(args: String) -> Result(Command, String) {
     _ -> Error("I don't understand")
   }
 }
+
+// CMD HANDLERS ----------------------------------------------------------------
 
 fn handle_command(command: Command, user: user.User) -> Result(String, String) {
   case command {
