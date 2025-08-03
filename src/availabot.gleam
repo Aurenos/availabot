@@ -15,7 +15,6 @@ import logging
 
 type Command {
   Ping
-  YouSuck
   ImOut(birl.Time)
 }
 
@@ -69,7 +68,6 @@ fn parse_command(msg_content: String) -> Result(Command, String) {
 
   case cmd {
     "ping" <> _ -> Ok(Ping)
-    "yousuck" <> _ -> Ok(YouSuck)
     "imout" <> args -> parse_imout(args)
     _ -> Error("")
   }
@@ -88,7 +86,6 @@ fn parse_imout(args: String) -> Result(Command, String) {
 fn handle_command(command: Command, user: user.User) -> Result(String, String) {
   case command {
     Ping -> Ok("Pong!")
-    YouSuck -> Ok("# FUCK YOU")
     ImOut(time) -> {
       let unix_time = time |> birl.to_unix() |> int.to_string()
       let discord_timestamp = "<t:" <> unix_time <> ":d>"
