@@ -42,7 +42,7 @@ fn event_handler(bot: bot.Bot, packet: event_handler.Packet) {
   case packet {
     event_handler.MessagePacket(msg) -> {
       logging.log(logging.Info, "Got message: " <> msg.d.content)
-      echo case parse_command(msg.d.content) {
+      case parse_command(msg.d.content) {
         Ok(cmd) -> {
           let output =
             cmd |> handle_command(msg.d.author) |> result.unwrap_both()
