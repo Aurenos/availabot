@@ -3,16 +3,26 @@ import birl/duration
 import gleam/list
 import gleam/yielder
 
+const weekday_list = [
+  birl.Mon,
+  birl.Tue,
+  birl.Wed,
+  birl.Thu,
+  birl.Fri,
+  birl.Sat,
+  birl.Sun,
+]
+
 fn next_weekday_days(
   from: birl.Time,
   weekday: birl.Weekday,
 ) -> duration.Duration {
   let from_weekday = birl.weekday(from)
   let day_cycle =
-    [birl.Mon, birl.Tue, birl.Wed, birl.Thu, birl.Fri, birl.Sat, birl.Sun]
+    weekday_list
     |> yielder.from_list
     |> yielder.cycle
-  let _ = day_cycle |> yielder.take_while(fn(day) { day == from_weekday })
+  let _ = day_cycle |> yielder.take_while(fn(day) { day != from_weekday })
 
   day_cycle
   |> yielder.fold_until(0, fn(n, wday) {
