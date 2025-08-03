@@ -80,10 +80,10 @@ fn parse_imout(args: String) -> Result(Command, String) {
   let arg = args |> string.trim |> string.lowercase
   case arg, birl.parse_weekday(arg) {
     "tomorrow", _ -> {
-      let tomorrow = birl.now() |> birl.add(duration.days(1))
+      let tomorrow = birl.utc_now() |> birl.add(duration.days(1))
       Ok(ImOut(tomorrow))
     }
-    "today", _ -> Ok(ImOut(birl.now()))
+    "today", _ -> Ok(ImOut(birl.utc_now()))
     _, Ok(weekday) -> {
       Ok(ImOut(datetime_utils.get_next_weekday(weekday)))
     }

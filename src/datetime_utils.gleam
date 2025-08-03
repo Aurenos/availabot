@@ -35,7 +35,7 @@ fn next_weekday_days(
 }
 
 pub fn get_next_weekday(weekday: birl.Weekday) -> birl.Time {
-  let now = birl.now()
+  let now = birl.utc_now()
   let duration = next_weekday_days(now, weekday)
   birl.add(now, duration)
 }
