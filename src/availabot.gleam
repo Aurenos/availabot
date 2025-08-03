@@ -5,10 +5,10 @@ import discord_gleam/discord/intents
 import discord_gleam/event_handler
 import discord_gleam/types/bot
 import discord_gleam/types/user
+import discord_timestamp as dt
 import dotenv_gleam
 import envoy
 import gleam/bool
-import gleam/int
 import gleam/result
 import gleam/string
 import logging
@@ -91,9 +91,13 @@ fn handle_command(command: Command, user: user.User) -> Result(String, String) {
   case command {
     Ping -> Ok("Pong!")
     ImOut(time) -> {
-      let unix_time = time |> birl.to_unix() |> int.to_string()
-      let discord_timestamp = "<t:" <> unix_time <> ":d>"
-      Ok("**" <> user.username <> "** " <> " is out " <> discord_timestamp)
+      Ok(
+        "**"
+        <> user.username
+        <> "** "
+        <> " is out "
+        <> dt.to_discord_timestamp(time, dt.LongDate),
+      )
     }
   }
 }
