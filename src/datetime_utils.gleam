@@ -13,7 +13,7 @@ const weekday_list = [
   birl.Sun,
 ]
 
-fn next_weekday_days(
+fn days_until_following_weekday(
   from: birl.Time,
   weekday: birl.Weekday,
 ) -> duration.Duration {
@@ -22,6 +22,7 @@ fn next_weekday_days(
     weekday_list
     |> yielder.from_list
     |> yielder.cycle
+  // Cycle to the current weekday first
   let _ = day_cycle |> yielder.take_while(fn(day) { day != from_weekday })
 
   day_cycle
@@ -34,8 +35,10 @@ fn next_weekday_days(
   |> duration.days()
 }
 
-pub fn get_next_weekday(weekday: birl.Weekday) -> birl.Time {
-  let now = birl.utc_now()
-  let duration = next_weekday_days(now, weekday)
-  birl.add(now, duration)
+pub fn get_following_weekday(
+  from: birl.Time,
+  weekday: birl.Weekday,
+) -> birl.Time {
+  let duration = days_until_following_weekday(from, weekday)
+  birl.add(from, duration)
 }

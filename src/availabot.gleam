@@ -85,7 +85,7 @@ fn parse_imout(args: String) -> Result(Command, String) {
     }
     "today", _ -> Ok(ImOut(birl.utc_now()))
     _, Ok(weekday) -> {
-      Ok(ImOut(datetime_utils.get_next_weekday(weekday)))
+      Ok(ImOut(datetime_utils.get_following_weekday(birl.utc_now(), weekday)))
     }
     _, _ -> Error("I don't understand")
   }
