@@ -24,6 +24,9 @@ fn timestamp_format(format: TimestampFormat) -> String {
 }
 
 pub fn to_discord_timestamp(time: birl.Time, format: TimestampFormat) -> String {
-  let unix_str = time |> birl.to_unix |> int.to_string
+  let unix_str =
+    time
+    |> birl.to_unix()
+    |> int.to_string()
   "<t:" <> unix_str <> timestamp_format(format) <> ">"
 }

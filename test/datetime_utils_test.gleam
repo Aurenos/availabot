@@ -28,3 +28,8 @@ pub fn get_following_weekday_test() {
     assert dtu.get_following_weekday(initial, test_case.weekday) == expected
   })
 }
+
+pub fn parse_date_test() {
+  let assert Ok(date) = dtu.parse_simple_iso8601("1-1")
+  echo birl.get_day(date)
+}

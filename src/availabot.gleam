@@ -10,9 +10,11 @@ import discord_timestamp as dt
 import dotenv_gleam
 import envoy
 import gleam/bool
+import gleam/order
 import gleam/result
 import gleam/string
 import logging
+import mkdn
 
 type Command {
   Ping
@@ -78,16 +80,25 @@ fn parse_command(msg_content: String) -> Result(Command, String) {
 
 fn parse_imout(args: String) -> Result(Command, String) {
   let arg = args |> string.trim |> string.lowercase
-  case arg, birl.parse_weekday(arg) {
-    "tomorrow", _ -> {
+  case arg, birl.parse_weekday(arg), datetime_utils.parse_simple_iso8601(arg) {
+    "tomorrow", _, _ -> {
       let tomorrow = birl.utc_now() |> birl.add(duration.days(1))
       Ok(ImOut(tomorrow))
     }
-    "today", _ -> Ok(ImOut(birl.utc_now()))
-    _, Ok(weekday) -> {
+
+    "today", _, _ -> Ok(ImOut(birl.utc_now()))
+
+    _, Ok(weekday), _ -> {
       Ok(ImOut(datetime_utils.get_following_weekday(birl.utc_now(), weekday)))
     }
-    _, _ -> Error("I don't understand")
+
+    _, _, simple_output -> {
+      use date <- result.try(simple_output)
+      case birl.compare(date, birl.utc_now()) {
+        order.Lt -> Error("That day has already passed.")
+        _ -> Ok(ImOut(date))
+      }
+    }
   }
 }
 
@@ -98,9 +109,7 @@ fn handle_command(command: Command, user: user.User) -> Result(String, String) {
     Ping -> Ok("Pong!")
     ImOut(time) -> {
       Ok(
-        "**"
-        <> user.username
-        <> "** "
+        mkdn.bold(user.username)
         <> " will be unavailable on "
         <> dt.to_discord_timestamp(time, dt.LongDate),
       )
