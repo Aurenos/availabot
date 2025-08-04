@@ -101,7 +101,7 @@ fn handle_command(command: Command, user: user.User) -> Result(String, String) {
         "**"
         <> user.username
         <> "** "
-        <> " is out "
+        <> " will be unavailable on "
         <> dt.to_discord_timestamp(time, dt.LongDate),
       )
     }
