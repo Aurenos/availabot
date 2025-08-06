@@ -12,7 +12,6 @@ import dotenv_gleam
 import envoy
 import gleam/bool
 import gleam/order
-import gleam/result
 import gleam/string
 import logging
 import mkdn
@@ -21,8 +20,14 @@ type Command {
   ImOut(birl.Time)
 }
 
-type CommandOutput =
-  Result(String, String)
+type CommandParserError {
+  InvalidCommand
+  InvalidArgument(String)
+}
+
+type CommandHandlerError {
+  CommandHandlerError(String)
+}
 
 pub fn main() {
   let assert Ok(Nil) = dotenv_gleam.config()
@@ -50,16 +55,20 @@ fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) {
 
       case parse_command(msg.d.content) {
         Ok(cmd) -> {
-          let output =
-            cmd |> handle_command(msg.d.author) |> result.unwrap_both()
+          let output = case handle_command(cmd, msg.d.author) {
+            Ok(out) -> out
+            Error(CommandHandlerError(error_msg)) -> error_msg
+          }
+
           let _ = discord_gleam.send_message(bot, msg.d.channel_id, output, [])
           Nil
         }
 
-        Error("") -> Nil
+        Error(InvalidCommand) -> Nil
 
-        Error(err) -> {
-          let _ = discord_gleam.send_message(bot, msg.d.channel_id, err, [])
+        Error(InvalidArgument(error_msg)) -> {
+          let _ =
+            discord_gleam.send_message(bot, msg.d.channel_id, error_msg, [])
           Nil
         }
       }
@@ -80,20 +89,20 @@ fn get_message(
 
 // CMD PARSERS ----------------------------------------------------------------
 
-fn parse_command(msg_content: String) -> Result(Command, String) {
+fn parse_command(msg_content: String) -> Result(Command, CommandParserError) {
   use <- bool.guard(
     when: !string.starts_with(msg_content, "!"),
-    return: Error(""),
+    return: Error(InvalidCommand),
   )
   let cmd = string.drop_start(msg_content, up_to: 1)
 
   case cmd {
     "imout" <> args -> parse_imout(args)
-    _ -> Error("")
+    _ -> Error(InvalidCommand)
   }
 }
 
-fn parse_imout(args: String) -> Result(Command, String) {
+fn parse_imout(args: String) -> Result(Command, CommandParserError) {
   let arg = args |> string.trim |> string.lowercase
   case arg, birl.parse_weekday(arg), datetime_utils.parse_simple_iso8601(arg) {
     "tomorrow", _, _ -> {
@@ -107,30 +116,34 @@ fn parse_imout(args: String) -> Result(Command, String) {
       Ok(ImOut(datetime_utils.get_following_weekday(birl.utc_now(), weekday)))
     }
 
-    _, _, simple_output -> {
-      use date <- result.try(simple_output)
+    _, _, Ok(date) -> Ok(ImOut(date))
 
-      // TODO: Does this actually belong in this function?
-      case birl.compare(date, birl.utc_now()) {
-        order.Lt -> Error("That day has already passed.")
-        _ -> Ok(ImOut(date))
-      }
-    }
+    _, _, Error(err) -> Error(InvalidArgument(err))
   }
 }
 
 // CMD HANDLERS ----------------------------------------------------------------
 
-fn handle_command(command: Command, user: user.User) -> CommandOutput {
+fn handle_command(
+  command: Command,
+  user: user.User,
+) -> Result(String, CommandHandlerError) {
   case command {
     ImOut(time) -> handle_imout(time, user)
   }
 }
 
-fn handle_imout(time: birl.Time, user: user.User) -> CommandOutput {
-  Ok(
-    mkdn.bold(user.username)
-    <> " will be unavailable on "
-    <> dt.to_discord_timestamp(time, dt.LongDate),
-  )
+fn handle_imout(
+  time: birl.Time,
+  user: user.User,
+) -> Result(String, CommandHandlerError) {
+  case birl.compare(time, birl.utc_now()) {
+    order.Lt -> Error(CommandHandlerError("That day has already passed."))
+    _ ->
+      Ok(
+        mkdn.bold(user.username)
+        <> " will be unavailable on "
+        <> dt.to_discord_timestamp(time, dt.LongDate),
+      )
+  }
 }
