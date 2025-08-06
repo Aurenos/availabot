@@ -6,6 +6,7 @@ import discord_gleam/discord/intents
 import discord_gleam/event_handler
 import discord_gleam/types/bot
 import discord_gleam/types/user
+import discord_gleam/ws/packets/message
 import discord_timestamp as dt
 import dotenv_gleam
 import envoy
@@ -17,9 +18,11 @@ import logging
 import mkdn
 
 type Command {
-  Ping
   ImOut(birl.Time)
 }
+
+type CommandOutput =
+  Result(String, String)
 
 pub fn main() {
   let assert Ok(Nil) = dotenv_gleam.config()
@@ -37,13 +40,14 @@ pub fn main() {
     )
 
   logging.log(logging.Info, "Starting Availabot")
-  discord_gleam.run(bot, [event_handler])
+  discord_gleam.run(bot, [discord_event_handler])
 }
 
-fn event_handler(bot: bot.Bot, packet: event_handler.Packet) {
-  case packet {
-    event_handler.MessagePacket(msg) -> {
+fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) {
+  case get_message(packet) {
+    Ok(msg) -> {
       logging.log(logging.Info, "Got message: " <> msg.d.content)
+
       case parse_command(msg.d.content) {
         Ok(cmd) -> {
           let output =
@@ -51,14 +55,26 @@ fn event_handler(bot: bot.Bot, packet: event_handler.Packet) {
           let _ = discord_gleam.send_message(bot, msg.d.channel_id, output, [])
           Nil
         }
+
         Error("") -> Nil
+
         Error(err) -> {
           let _ = discord_gleam.send_message(bot, msg.d.channel_id, err, [])
           Nil
         }
       }
     }
+
     _ -> Nil
+  }
+}
+
+fn get_message(
+  packet: event_handler.Packet,
+) -> Result(message.MessagePacket, Nil) {
+  case packet {
+    event_handler.MessagePacket(msg_packet) -> Ok(msg_packet)
+    _ -> Error(Nil)
   }
 }
 
@@ -72,7 +88,6 @@ fn parse_command(msg_content: String) -> Result(Command, String) {
   let cmd = string.drop_start(msg_content, up_to: 1)
 
   case cmd {
-    "ping" <> _ -> Ok(Ping)
     "imout" <> args -> parse_imout(args)
     _ -> Error("")
   }
@@ -94,6 +109,8 @@ fn parse_imout(args: String) -> Result(Command, String) {
 
     _, _, simple_output -> {
       use date <- result.try(simple_output)
+
+      // TODO: Does this actually belong in this function?
       case birl.compare(date, birl.utc_now()) {
         order.Lt -> Error("That day has already passed.")
         _ -> Ok(ImOut(date))
@@ -104,15 +121,16 @@ fn parse_imout(args: String) -> Result(Command, String) {
 
 // CMD HANDLERS ----------------------------------------------------------------
 
-fn handle_command(command: Command, user: user.User) -> Result(String, String) {
+fn handle_command(command: Command, user: user.User) -> CommandOutput {
   case command {
-    Ping -> Ok("Pong!")
-    ImOut(time) -> {
-      Ok(
-        mkdn.bold(user.username)
-        <> " will be unavailable on "
-        <> dt.to_discord_timestamp(time, dt.LongDate),
-      )
-    }
+    ImOut(time) -> handle_imout(time, user)
   }
+}
+
+fn handle_imout(time: birl.Time, user: user.User) -> CommandOutput {
+  Ok(
+    mkdn.bold(user.username)
+    <> " will be unavailable on "
+    <> dt.to_discord_timestamp(time, dt.LongDate),
+  )
 }
