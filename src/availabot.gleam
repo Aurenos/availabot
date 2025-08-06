@@ -110,7 +110,7 @@ fn parse_imout(args: String) -> Result(Command, CommandParserError) {
       Ok(ImOut(tomorrow))
     }
 
-    "today", _, _ -> Ok(ImOut(birl.utc_now()))
+    "today", _, _ | "tonight", _, _ -> Ok(ImOut(birl.utc_now()))
 
     _, Ok(weekday), _ -> {
       Ok(ImOut(datetime_utils.get_following_weekday(birl.utc_now(), weekday)))
