@@ -70,18 +70,16 @@ fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) -> Nil {
         Some(BotResponse(text: output, channel_id: msg.d.channel_id))
       }
 
-      Error(InvalidCommand) -> None
-
       Error(InvalidArgument(error_msg)) -> {
         Some(BotResponse(text: error_msg, channel_id: msg.d.channel_id))
       }
+
+      Error(InvalidCommand) -> None
     }
   }
 
   case msg_response {
-    Some(response) -> {
-      send_bot_response(bot, response)
-    }
+    Some(response) -> send_bot_response(bot, response)
     None -> Nil
   }
 }
@@ -129,16 +127,11 @@ fn parse_availability_change(
     birl.parse_weekday(arg),
     date_utils.parse_simple_iso8601(arg, current_year)
   {
-    "tomorrow", _, _ -> {
-      let tomorrow = now |> birl.add(duration.days(1))
-      Ok(tomorrow)
-    }
+    "tomorrow", _, _ -> Ok(now |> birl.add(duration.days(1)))
 
     "today", _, _ | "tonight", _, _ -> Ok(now)
 
-    _, Ok(weekday), _ -> {
-      Ok(date_utils.get_following_weekday(now, weekday))
-    }
+    _, Ok(weekday), _ -> Ok(date_utils.get_following_weekday(now, weekday))
 
     _, _, Ok(date) -> Ok(date)
 
