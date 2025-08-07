@@ -124,8 +124,8 @@ fn parse_imout(args: String) -> Result(Command, CommandParserError) {
 
     _, _, Ok(date) -> Ok(ImOut(date))
 
-    _, _, Error(date_utils.InvalidDateFormat) ->
-      Error(InvalidArgument(date_utils.invalid_date_format_msg))
+    _, _, Error(date_utils.InvalidDateFormat(err_msg)) ->
+      Error(InvalidArgument(err_msg))
   }
 }
 
@@ -144,9 +144,7 @@ fn handle_imout(
   time: birl.Time,
   user: user.User,
 ) -> Result(String, CommandHandlerError) {
-  let current_day =
-    birl.utc_now()
-    |> birl.set_time_of_day(birl.TimeOfDay(0, 0, 0, 0))
+  let current_day = date_utils.utc_now_midnight()
   case birl.to_unix(time) < birl.to_unix(current_day) {
     True -> Error(CommandHandlerError("That day has already passed."))
     _ ->

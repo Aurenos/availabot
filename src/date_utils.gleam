@@ -7,7 +7,7 @@ import gleam/result
 import gleam/string
 
 pub type DateParseError {
-  InvalidDateFormat
+  InvalidDateFormat(String)
 }
 
 const weekday_list = [
@@ -20,9 +20,14 @@ const weekday_list = [
   birl.Sun,
 ]
 
-const midnight_utc = "23:59:59-0"
+const utc_time_eod = "23:59:59-0"
 
-pub const invalid_date_format_msg = "Invalid date format. Expected either YYYY-MM-DD or MM-DD"
+const invalid_date_format_msg = "Invalid date format. Expected either YYYY-MM-DD or MM-DD"
+
+pub fn utc_now_midnight() -> birl.Time {
+  birl.utc_now()
+  |> birl.set_time_of_day(birl.TimeOfDay(0, 0, 0, 0))
+}
 
 fn days_until_following_weekday(
   from: birl.Time,
@@ -59,7 +64,7 @@ pub fn parse_simple_iso8601(
   year: Int,
 ) -> Result(birl.Time, DateParseError) {
   // There's probably a better way of doing this than the weird concat, but it gets the job done for now?
-  use _ <- result.try_recover(birl.parse(input <> " " <> midnight_utc))
+  use _ <- result.try_recover(birl.parse(input <> " " <> utc_time_eod))
   case string.split(input, "-") {
     [month, day] -> {
       let date_str =
@@ -68,9 +73,9 @@ pub fn parse_simple_iso8601(
         |> list.prepend([month, day], _)
         |> string.join("-")
 
-      birl.parse(date_str <> " " <> midnight_utc)
-      |> result.replace_error(InvalidDateFormat)
+      birl.parse(date_str <> " " <> utc_time_eod)
+      |> result.replace_error(InvalidDateFormat(invalid_date_format_msg))
     }
-    _ -> Error(InvalidDateFormat)
+    _ -> Error(InvalidDateFormat(invalid_date_format_msg))
   }
 }

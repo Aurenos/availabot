@@ -132,7 +132,10 @@ pub fn parse_simple_iso8601_test() {
       }
       None -> {
         let assert Error(err) = parse_res
-        assert err == date_utils.InvalidDateFormat
+        assert err
+          == date_utils.InvalidDateFormat(
+            "Invalid date format. Expected either YYYY-MM-DD or MM-DD",
+          )
       }
     }
   })
