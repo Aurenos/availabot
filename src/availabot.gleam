@@ -12,6 +12,7 @@ import dotenv_gleam
 import envoy
 import gleam/bool
 import gleam/option.{None, Some}
+import gleam/result
 import gleam/string
 import logging
 import mkdn
@@ -110,40 +111,47 @@ fn parse_command(msg_content: String) -> Result(Command, CommandParserError) {
   let cmd = string.drop_start(msg_content, up_to: 1)
 
   case cmd {
-    "imout " <> args -> parse_imout(args)
+    "imout " <> args -> parse_availability_change(args, False)
+    "imin " <> args -> parse_availability_change(args, True)
     _ -> Error(InvalidCommand)
   }
 }
 
-fn parse_imout(args: String) -> Result(Command, CommandParserError) {
+fn parse_availability_change(
+  args: String,
+  available: Bool,
+) -> Result(Command, CommandParserError) {
   let arg = args |> string.trim |> string.lowercase
   let now = birl.utc_now()
   let current_year = birl.get_day(now).year
-  case
+  let parse_res: Result(birl.Time, CommandParserError) = case
     arg,
     birl.parse_weekday(arg),
     date_utils.parse_simple_iso8601(arg, current_year)
   {
     "tomorrow", _, _ -> {
       let tomorrow = now |> birl.add(duration.days(1))
-      Ok(ImOut(tomorrow))
+      Ok(tomorrow)
     }
 
-    "today", _, _ | "tonight", _, _ -> Ok(ImOut(now))
+    "today", _, _ | "tonight", _, _ -> Ok(now)
 
     _, Ok(weekday), _ -> {
-      Ok(ImOut(date_utils.get_following_weekday(now, weekday)))
+      Ok(date_utils.get_following_weekday(now, weekday))
     }
 
-    _, _, Ok(date) -> Ok(ImOut(date))
+    _, _, Ok(date) -> Ok(date)
 
     _, _, Error(date_utils.InvalidDateFormat(err_msg)) ->
       Error(InvalidArgument(err_msg))
   }
-}
 
-fn parse_imin(args: String) -> Result(Command, CommandParserError) {
-  todo
+  result.map(parse_res, fn(parsed_time) {
+    case available {
+      True -> ImIn(parsed_time)
+      False -> ImOut(parsed_time)
+    }
+  })
 }
 
 // CMD HANDLERS ----------------------------------------------------------------
@@ -163,6 +171,7 @@ fn handle_imout(
   time: birl.Time,
   user: user.User,
 ) -> Result(String, CommandHandlerError) {
+  // Todo: Actual data storage updates
   let current_day = date_utils.utc_now_midnight()
   case birl.to_unix(time) < birl.to_unix(current_day) {
     True -> Error(CommandHandlerError("That day has already passed."))
@@ -179,7 +188,17 @@ fn handle_imin(
   time: birl.Time,
   user: user.User,
 ) -> Result(String, CommandHandlerError) {
-  todo
+  // Todo: Actual data storage updates
+  let current_day = date_utils.utc_now_midnight()
+  case birl.to_unix(time) < birl.to_unix(current_day) {
+    True -> Error(CommandHandlerError("That day has already passed."))
+    _ ->
+      Ok(
+        mkdn.bold(user.username)
+        <> " is available on "
+        <> dt.to_discord_timestamp(time, dt.LongDate),
+      )
+  }
 }
 
 fn clear_absences(user: user.User) -> Result(String, CommandHandlerError) {
