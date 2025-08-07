@@ -18,6 +18,8 @@ import mkdn
 
 type Command {
   ImOut(birl.Time)
+  ImIn(birl.Time)
+  ClearAbsences
 }
 
 type CommandParserError {
@@ -148,6 +150,8 @@ fn handle_command(
 ) -> Result(String, CommandHandlerError) {
   case command {
     ImOut(time) -> handle_imout(time, user)
+    ImIn(time) -> handle_imin(time, user)
+    ClearAbsences -> clear_absences(user)
   }
 }
 
@@ -165,4 +169,15 @@ fn handle_imout(
         <> dt.to_discord_timestamp(time, dt.LongDate),
       )
   }
+}
+
+fn handle_imin(
+  time: birl.Time,
+  user: user.User,
+) -> Result(String, CommandHandlerError) {
+  todo
+}
+
+fn clear_absences(user: user.User) -> Result(String, CommandHandlerError) {
+  todo
 }
