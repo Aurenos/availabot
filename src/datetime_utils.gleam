@@ -1,5 +1,6 @@
 import birl
 import birl/duration
+import gleam/bool
 import gleam/int
 import gleam/list
 import gleam/result
@@ -24,10 +25,13 @@ fn days_until_following_weekday(
   weekday: birl.Weekday,
 ) -> duration.Duration {
   let from_weekday = birl.weekday(from)
+  use <- bool.guard(when: weekday == from_weekday, return: duration.days(7))
+
   let #(weekdays_to_current, weekdays_after_current) =
     weekday_list |> list.split_while(fn(wday) { wday != from_weekday })
 
   weekdays_after_current
+  |> list.filter(fn(wday) { wday != from_weekday })
   |> list.append(weekdays_to_current)
   |> list.fold_until(0, fn(n, wday) {
     case wday == weekday {
