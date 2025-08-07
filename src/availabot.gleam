@@ -104,21 +104,27 @@ fn parse_command(msg_content: String) -> Result(Command, CommandParserError) {
 
 fn parse_imout(args: String) -> Result(Command, CommandParserError) {
   let arg = args |> string.trim |> string.lowercase
-  case arg, birl.parse_weekday(arg), datetime_utils.parse_simple_iso8601(arg) {
+  let now = birl.utc_now()
+  case
+    arg,
+    birl.parse_weekday(arg),
+    datetime_utils.parse_simple_iso8601(arg, birl.get_day(now).year)
+  {
     "tomorrow", _, _ -> {
-      let tomorrow = birl.utc_now() |> birl.add(duration.days(1))
+      let tomorrow = now |> birl.add(duration.days(1))
       Ok(ImOut(tomorrow))
     }
 
-    "today", _, _ | "tonight", _, _ -> Ok(ImOut(birl.utc_now()))
+    "today", _, _ | "tonight", _, _ -> Ok(ImOut(now))
 
     _, Ok(weekday), _ -> {
-      Ok(ImOut(datetime_utils.get_following_weekday(birl.utc_now(), weekday)))
+      Ok(ImOut(datetime_utils.get_following_weekday(now, weekday)))
     }
 
     _, _, Ok(date) -> Ok(ImOut(date))
 
-    _, _, Error(err) -> Error(InvalidArgument(err))
+    _, _, Error(datetime_utils.InvalidDateFormat) ->
+      Error(InvalidArgument(datetime_utils.invalid_date_format_msg))
   }
 }
 

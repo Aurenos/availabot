@@ -1,12 +1,21 @@
 import birl
 import datetime_utils as dtu
 import gleam/list
+import gleam/option.{type Option, None, Some}
 
 type FollowingWeekdayTestCase {
   FollowingWeekdayTestCase(
     initial_date: String,
     weekday: birl.Weekday,
     expected_date: String,
+  )
+}
+
+type ParseSimpleISO8601TestCase {
+  ParseSimpleISO8601TestCase(
+    text: String,
+    expected: Option(birl.Day),
+    year: Int,
   )
 }
 
@@ -98,5 +107,31 @@ pub fn get_following_weekday_test() {
     let next_weekday = dtu.get_following_weekday(initial, test_case.weekday)
     let expected_day = birl.get_day(expected)
     assert birl.get_day(next_weekday) == expected_day
+  })
+}
+
+pub fn parse_simple_iso8601_test() {
+  let test_cases = [
+    ParseSimpleISO8601TestCase("2025-01-01", Some(birl.Day(2025, 1, 1)), 2025),
+    ParseSimpleISO8601TestCase("01-01", Some(birl.Day(2025, 1, 1)), 2025),
+    ParseSimpleISO8601TestCase("1-1", Some(birl.Day(2025, 1, 1)), 2025),
+    ParseSimpleISO8601TestCase("10-1", Some(birl.Day(2026, 10, 1)), 2026),
+    ParseSimpleISO8601TestCase("10-10", Some(birl.Day(2026, 10, 10)), 2026),
+    ParseSimpleISO8601TestCase("bad", None, 2026),
+  ]
+
+  test_cases
+  |> list.each(fn(test_case) {
+    let parse_res = dtu.parse_simple_iso8601(test_case.text, test_case.year)
+    case test_case.expected {
+      Some(expected_day) -> {
+        let assert Ok(time) = parse_res
+        assert birl.get_day(time) == expected_day
+      }
+      None -> {
+        let assert Error(err) = parse_res
+        assert err == dtu.InvalidDateFormat
+      }
+    }
   })
 }
