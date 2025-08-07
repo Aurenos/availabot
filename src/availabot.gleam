@@ -96,8 +96,7 @@ fn parse_command(msg_content: String) -> Result(Command, CommandParserError) {
   let cmd = string.drop_start(msg_content, up_to: 1)
 
   case cmd {
-    "imout" <> args -> parse_imout(args)
-    // Todo: maybe add space
+    "imout " <> args -> parse_imout(args)
     _ -> Error(InvalidCommand)
   }
 }
