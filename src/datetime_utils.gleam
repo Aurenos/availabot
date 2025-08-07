@@ -4,7 +4,6 @@ import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
-import gleam/yielder
 
 const weekday_list = [
   birl.Mon,
@@ -25,15 +24,12 @@ fn days_until_following_weekday(
   weekday: birl.Weekday,
 ) -> duration.Duration {
   let from_weekday = birl.weekday(from)
-  let day_cycle =
-    weekday_list
-    |> yielder.from_list
-    |> yielder.cycle
-  // Cycle to the current weekday first
-  let _ = day_cycle |> yielder.take_while(fn(day) { day != from_weekday })
+  let #(weekdays_to_current, weekdays_after_current) =
+    weekday_list |> list.split_while(fn(wday) { wday != from_weekday })
 
-  day_cycle
-  |> yielder.fold_until(0, fn(n, wday) {
+  weekdays_after_current
+  |> list.append(weekdays_to_current)
+  |> list.fold_until(0, fn(n, wday) {
     case wday == weekday {
       True -> list.Stop(n + 1)
       False -> list.Continue(n + 1)

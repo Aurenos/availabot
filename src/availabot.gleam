@@ -11,7 +11,6 @@ import discord_timestamp as dt
 import dotenv_gleam
 import envoy
 import gleam/bool
-import gleam/order
 import gleam/string
 import logging
 import mkdn
@@ -48,7 +47,7 @@ pub fn main() {
   discord_gleam.run(bot, [discord_event_handler])
 }
 
-fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) {
+fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) -> Nil {
   case get_message(packet) {
     Ok(msg) -> {
       logging.log(logging.Info, "Got message: " <> msg.d.content)
@@ -98,6 +97,7 @@ fn parse_command(msg_content: String) -> Result(Command, CommandParserError) {
 
   case cmd {
     "imout" <> args -> parse_imout(args)
+    // Todo: maybe add space
     _ -> Error(InvalidCommand)
   }
 }
@@ -137,8 +137,11 @@ fn handle_imout(
   time: birl.Time,
   user: user.User,
 ) -> Result(String, CommandHandlerError) {
-  case birl.compare(time, birl.utc_now()) {
-    order.Lt -> Error(CommandHandlerError("That day has already passed."))
+  let current_day =
+    birl.utc_now()
+    |> birl.set_time_of_day(birl.TimeOfDay(0, 0, 0, 0))
+  case birl.to_unix(time) < birl.to_unix(current_day) {
+    True -> Error(CommandHandlerError("That day has already passed."))
     _ ->
       Ok(
         mkdn.bold(user.username)
