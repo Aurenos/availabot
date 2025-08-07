@@ -56,7 +56,6 @@ fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) -> Nil {
   let msg_response = {
     use msg <- option.then(get_message(packet) |> option.from_result)
     logging.log(logging.Info, "Got message: " <> msg.d.content)
-    let channel_id = msg.d.channel_id
 
     case parse_command(msg.d.content) {
       Ok(cmd) -> {
@@ -65,13 +64,13 @@ fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) -> Nil {
           Error(CommandHandlerError(error_msg)) -> error_msg
         }
 
-        Some(BotResponse(text: output, channel_id: channel_id))
+        Some(BotResponse(text: output, channel_id: msg.d.channel_id))
       }
 
       Error(InvalidCommand) -> None
 
       Error(InvalidArgument(error_msg)) -> {
-        Some(BotResponse(text: error_msg, channel_id: channel_id))
+        Some(BotResponse(text: error_msg, channel_id: msg.d.channel_id))
       }
     }
   }
