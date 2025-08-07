@@ -53,29 +53,27 @@ pub fn main() {
 }
 
 fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) -> Nil {
-  let msg_response = case get_message(packet) {
-    Ok(msg) -> {
-      logging.log(logging.Info, "Got message: " <> msg.d.content)
-      let channel_id = msg.d.channel_id
+  let msg_response = {
+    use msg <- option.then(get_message(packet) |> option.from_result)
+    logging.log(logging.Info, "Got message: " <> msg.d.content)
+    let channel_id = msg.d.channel_id
 
-      case parse_command(msg.d.content) {
-        Ok(cmd) -> {
-          let output = case handle_command(cmd, msg.d.author) {
-            Ok(out) -> out
-            Error(CommandHandlerError(error_msg)) -> error_msg
-          }
-
-          Some(BotResponse(text: output, channel_id: channel_id))
+    case parse_command(msg.d.content) {
+      Ok(cmd) -> {
+        let output = case handle_command(cmd, msg.d.author) {
+          Ok(out) -> out
+          Error(CommandHandlerError(error_msg)) -> error_msg
         }
 
-        Error(InvalidCommand) -> None
+        Some(BotResponse(text: output, channel_id: channel_id))
+      }
 
-        Error(InvalidArgument(error_msg)) -> {
-          Some(BotResponse(text: error_msg, channel_id: channel_id))
-        }
+      Error(InvalidCommand) -> None
+
+      Error(InvalidArgument(error_msg)) -> {
+        Some(BotResponse(text: error_msg, channel_id: channel_id))
       }
     }
-    _ -> None
   }
 
   case msg_response {
