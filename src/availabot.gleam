@@ -11,6 +11,7 @@ import discord_timestamp as dt
 import dotenv_gleam
 import envoy
 import gleam/bool
+import gleam/option.{None, Some}
 import gleam/string
 import logging
 import mkdn
@@ -26,6 +27,10 @@ type CommandParserError {
 
 type CommandHandlerError {
   CommandHandlerError(String)
+}
+
+type BotResponse {
+  BotResponse(text: String, channel_id: String)
 }
 
 pub fn main() {
@@ -48,9 +53,10 @@ pub fn main() {
 }
 
 fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) -> Nil {
-  case get_message(packet) {
+  let msg_response = case get_message(packet) {
     Ok(msg) -> {
       logging.log(logging.Info, "Got message: " <> msg.d.content)
+      let channel_id = msg.d.channel_id
 
       case parse_command(msg.d.content) {
         Ok(cmd) -> {
@@ -59,21 +65,24 @@ fn discord_event_handler(bot: bot.Bot, packet: event_handler.Packet) -> Nil {
             Error(CommandHandlerError(error_msg)) -> error_msg
           }
 
-          let _ = discord_gleam.send_message(bot, msg.d.channel_id, output, [])
-          Nil
+          Some(BotResponse(text: output, channel_id: channel_id))
         }
 
-        Error(InvalidCommand) -> Nil
+        Error(InvalidCommand) -> None
 
         Error(InvalidArgument(error_msg)) -> {
-          let _ =
-            discord_gleam.send_message(bot, msg.d.channel_id, error_msg, [])
-          Nil
+          Some(BotResponse(text: error_msg, channel_id: channel_id))
         }
       }
     }
+    _ -> None
+  }
 
-    _ -> Nil
+  case msg_response {
+    Some(response) -> {
+      send_bot_response(bot, response)
+    }
+    None -> Nil
   }
 }
 
@@ -84,6 +93,12 @@ fn get_message(
     event_handler.MessagePacket(msg_packet) -> Ok(msg_packet)
     _ -> Error(Nil)
   }
+}
+
+fn send_bot_response(bot: bot.Bot, response: BotResponse) -> Nil {
+  let _ =
+    discord_gleam.send_message(bot, response.channel_id, response.text, [])
+  Nil
 }
 
 // CMD PARSERS ----------------------------------------------------------------
