@@ -1,5 +1,5 @@
 import birl
-import datetime_utils as dtu
+import date_utils
 import gleam/list
 import gleam/option.{type Option, None, Some}
 
@@ -104,7 +104,8 @@ pub fn get_following_weekday_test() {
   |> list.each(fn(test_case) {
     let assert Ok(initial) = birl.from_naive(test_case.initial_date)
     let assert Ok(expected) = birl.from_naive(test_case.expected_date)
-    let next_weekday = dtu.get_following_weekday(initial, test_case.weekday)
+    let next_weekday =
+      date_utils.get_following_weekday(initial, test_case.weekday)
     let expected_day = birl.get_day(expected)
     assert birl.get_day(next_weekday) == expected_day
   })
@@ -122,7 +123,8 @@ pub fn parse_simple_iso8601_test() {
 
   test_cases
   |> list.each(fn(test_case) {
-    let parse_res = dtu.parse_simple_iso8601(test_case.text, test_case.year)
+    let parse_res =
+      date_utils.parse_simple_iso8601(test_case.text, test_case.year)
     case test_case.expected {
       Some(expected_day) -> {
         let assert Ok(time) = parse_res
@@ -130,7 +132,7 @@ pub fn parse_simple_iso8601_test() {
       }
       None -> {
         let assert Error(err) = parse_res
-        assert err == dtu.InvalidDateFormat
+        assert err == date_utils.InvalidDateFormat
       }
     }
   })

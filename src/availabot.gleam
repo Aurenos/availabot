@@ -1,6 +1,6 @@
 import birl
 import birl/duration
-import datetime_utils
+import date_utils
 import discord_gleam
 import discord_gleam/discord/intents
 import discord_gleam/event_handler
@@ -105,10 +105,11 @@ fn parse_command(msg_content: String) -> Result(Command, CommandParserError) {
 fn parse_imout(args: String) -> Result(Command, CommandParserError) {
   let arg = args |> string.trim |> string.lowercase
   let now = birl.utc_now()
+  let current_year = birl.get_day(now).year
   case
     arg,
     birl.parse_weekday(arg),
-    datetime_utils.parse_simple_iso8601(arg, birl.get_day(now).year)
+    date_utils.parse_simple_iso8601(arg, current_year)
   {
     "tomorrow", _, _ -> {
       let tomorrow = now |> birl.add(duration.days(1))
@@ -118,13 +119,13 @@ fn parse_imout(args: String) -> Result(Command, CommandParserError) {
     "today", _, _ | "tonight", _, _ -> Ok(ImOut(now))
 
     _, Ok(weekday), _ -> {
-      Ok(ImOut(datetime_utils.get_following_weekday(now, weekday)))
+      Ok(ImOut(date_utils.get_following_weekday(now, weekday)))
     }
 
     _, _, Ok(date) -> Ok(ImOut(date))
 
-    _, _, Error(datetime_utils.InvalidDateFormat) ->
-      Error(InvalidArgument(datetime_utils.invalid_date_format_msg))
+    _, _, Error(date_utils.InvalidDateFormat) ->
+      Error(InvalidArgument(date_utils.invalid_date_format_msg))
   }
 }
 
