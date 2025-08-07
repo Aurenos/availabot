@@ -142,6 +142,10 @@ fn parse_imout(args: String) -> Result(Command, CommandParserError) {
   }
 }
 
+fn parse_imin(args: String) -> Result(Command, CommandParserError) {
+  todo
+}
+
 // CMD HANDLERS ----------------------------------------------------------------
 
 fn handle_command(
